@@ -4,4 +4,5 @@
 config.py
 data/*.txt
 data/*.csv
+__pycache__
 
