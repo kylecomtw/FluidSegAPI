@@ -8,12 +8,12 @@ from FluidSeg import FluidSeg
 from FluidSeg import LexiconFactory, TokenData
 import config
 import pyOceanus
+import pdb
 
 app = Flask(__name__)
 api = Api(app)
 basepath = abspath(dirname(__file__))
 lexicon = LexiconFactory().get(join(basepath, "data/fluid_seg_lexicon.txt"))
-fseg = FluidSeg(lexicon)
 oc = pyOceanus.Oceanus(config.OCEANUS_ENDPOINT)
 
 class UserLexicon(Resource):
@@ -22,6 +22,7 @@ class UserLexicon(Resource):
 
     def get(self):
         return {"n_entry": self.n_user_words}
+        # return {"n_entry": self.n_user_words}
 
     def post(self):
         data = request.get_json()        
@@ -46,14 +47,16 @@ class Segments(Resource):
             return flask.make_response("Cannot get json data", 400)
 
         text = data["text"]
+        fseg = FluidSeg(lexicon)
         segData = fseg.segment(text)
         od = oc.parse(text)        
         preseg = list(chain.from_iterable(od.tokens))
         preseg = [TokenData(x[0], x[3], x[4]) for x in preseg]
         
         segData.setPresegment(preseg)
-        gran_label = ["0.33", "0.66", "1.00", "preseg", "token"]
+        gran_label = ["0.00", "0.33", "0.66", "1.00", "preseg", "token"]
         seg_list = [
+                segData.toSegmentedText(segData.preseg, granularity=0.00),
                 segData.toSegmentedText(segData.preseg, granularity=0.33),
                 segData.toSegmentedText(segData.preseg, granularity=0.66),
                 segData.toSegmentedText(segData.preseg, granularity=1.00),
