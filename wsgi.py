@@ -1,17 +1,27 @@
 import flask
+from os.path import abspath, dirname, join
+from itertools import chain
 from flask import Flask
 from flask_restful import Resource, Api
 from flask import request
 from FluidSeg import FluidSeg
 from FluidSeg import LexiconFactory, TokenData
+import config
 import pyOceanus
 
 app = Flask(__name__)
 api = Api(app)
+basepath = abspath(dirname(__file__))
+lexicon = LexiconFactory().get(join(basepath, "data/fluid_seg_lexicon.txt"))
+fseg = FluidSeg(lexicon)
+oc = pyOceanus.Oceanus(config.OCEANUS_ENDPOINT)
 
 class UserLexicon(Resource):
+    def __init__(self):
+        self.n_user_words = 0
+
     def get(self):
-        return {"n_entry": 1024}
+        return {"n_entry": self.n_user_words}
 
     def post(self):
         data = request.get_json()        
@@ -19,13 +29,44 @@ class UserLexicon(Resource):
             return flask.make_response("Cannot get json data", 400)        
         
         annot = data["annotations"]
-        n_added = len([x["w"] for x in annot if "w" in x])
+        words = [x["w"] for x in annot if "w" in x]
+        n_added = lexicon.addSupplementary(words)
         return {"added": n_added}
 
 class Segments(Resource):
     def __init__(self):
-        # self.lexicon = LexiconFactory.get("")
-        # self.fseg = FluidSeg(lexicon)
+        pass
+
+    def get(self):
+        return "FluidSeg API standby"
+
+    def post(self):
+        data = request.get_json()
+        if not data:
+            return flask.make_response("Cannot get json data", 400)
+
+        text = data["text"]
+        segData = fseg.segment(text)
+        od = oc.parse(text)        
+        preseg = list(chain.from_iterable(od.tokens))
+        preseg = [TokenData(x[0], x[3], x[4]) for x in preseg]
+        
+        segData.setPresegment(preseg)
+        gran_label = ["0.33", "0.66", "1.00", "preseg", "token"]
+        seg_list = [
+                segData.toSegmentedText(segData.preseg, granularity=0.33),
+                segData.toSegmentedText(segData.preseg, granularity=0.66),
+                segData.toSegmentedText(segData.preseg, granularity=1.00),
+                segData.toSegmentedText(segData.preseg),
+                segData.toSegmentedText(segData.tokens),
+                ]
+        return {"fluidSeg": {
+                    "granularity": gran_label, 
+                    "segments": seg_list }, 
+                "text": text }
+
+class SegmentsTest(Resource):
+    def __init__(self):
         pass
 
     def get(self):
@@ -68,6 +109,7 @@ def after_request(response):
     return response
 
 api.add_resource(Segments, '/seg')
+api.add_resource(SegmentsTest, '/segtest')
 api.add_resource(UserLexicon, "/lexicon")
 api.add_resource(IndexAPI, "/")
 

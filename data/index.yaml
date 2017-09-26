@@ -1,0 +1,4 @@
+fluid_seg_lexicon.txt:
+  description: lexicon for fluid seg
+  source: Dropbox/DeepLex
+  format: text/plain
