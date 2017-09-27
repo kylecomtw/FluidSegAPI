@@ -3,6 +3,7 @@ from os.path import abspath, dirname, join
 from itertools import chain
 from flask import Flask
 from flask_restful import Resource, Api
+from flask_cors import CORS
 from flask import request
 from FluidSeg import FluidSeg
 from FluidSeg import LexiconFactory, TokenData
@@ -11,7 +12,9 @@ import pyOceanus
 import pdb
 
 app = Flask(__name__)
+CORS(app)
 api = Api(app)
+
 basepath = abspath(dirname(__file__))
 lexicon = LexiconFactory().get(join(basepath, "data/fluid_seg_lexicon.txt"))
 oc = pyOceanus.Oceanus(config.OCEANUS_ENDPOINT)
