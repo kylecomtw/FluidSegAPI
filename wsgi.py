@@ -112,6 +112,8 @@ class IndexAPI(Resource):
 def after_request(response):
     h = response.headers
     h["Access-Control-Allow-Origin"] = "*"
+    h["Access-Control-Allow-Headers"] = \
+        "Origin, X-Requested-With, Content-Type, Accept"
     return response
 
 api.add_resource(Segments, '/seg')
