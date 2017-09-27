@@ -1,6 +1,7 @@
 *~
 *.swp
 *.tmp
+*.log
 config.py
 data/*.txt
 data/*.csv

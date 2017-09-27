@@ -48,13 +48,21 @@ class Segments(Resource):
         data = request.get_json()
         if not data:
             return flask.make_response("Cannot get json data", 400)
+        
+        if "text" not in data:
+            print("invalid data: ", str(data))
+            return flask.make_response("cannot parse data", 400)
 
         text = data["text"]
         fseg = FluidSeg(lexicon)
         segData = fseg.segment(text)
-        od = oc.parse(text)        
-        preseg = list(chain.from_iterable(od.tokens))
-        preseg = [TokenData(x[0], x[3], x[4]) for x in preseg]
+        try:
+            od = oc.parse(text)        
+            preseg = list(chain.from_iterable(od.tokens))
+            preseg = [TokenData(x[0], x[3], x[4]) for x in preseg]
+        except Exception as ex:
+            print("cannot process text content")
+            return flask.make_response("cannot process text content", 400)
         
         segData.setPresegment(preseg)
         gran_label = ["0.00", "0.33", "0.66", "1.00", "preseg", "token"]
