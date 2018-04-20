@@ -2,8 +2,10 @@
 *.swp
 *.tmp
 *.log
+*.pyc
 config.py
 data/*.txt
 data/*.csv
+data/*.db
 __pycache__
 
