@@ -1,32 +1,30 @@
 import sqlite3
 import config
 import os
+import db_scheme
+import pdb
 
 class FluidDb:
     def __init__(self):
-        if os.path.exists(config.DB_PATH):
-            os.remove(config.DB_PATH)
         self.conn = sqlite3.connect(config.DB_PATH)
-        self.check_table_exists("table")
-        self.create_datatables()
+        if not self.check_table_exists("tbl_sess"):
+            self.create_datatables()
         
     def create_datatables(self):
-        tbl_scheme = """
-            CREATE TABLE tbl_tag (
-                serial INT PRIMARY KEY,
-                lu TEXT,
-                tag TEXT,
-                sess_id TEXT,
-                range_start INT,
-                range_end INT
-            );
-        """
-        idx_scheme = """
-            CREATE INDEX idx_tag_sess ON tbl_tag(sess_id);
-        """
-        self.conn.execute(tbl_scheme)
-        self.conn.execute(idx_scheme)
+        self.conn.execute(db_scheme.tbl_tag)
+        self.conn.execute(db_scheme.tbl_seg)
+        self.conn.execute(db_scheme.tbl_sess)
+        self.conn.execute(db_scheme.idx_tag_sess)
+        self.conn.execute(db_scheme.idx_tag_lu)
+        self.conn.execute(db_scheme.idx_tag_tag)
+        self.conn.execute(db_scheme.idx_seg_sess)
+        self.conn.execute(db_scheme.idx_sess_docid)
         self.conn.commit()
 
-    def check_table_exists(self, tbname):
-        pass
+    def check_table_exists(self, tblname):
+        cur = self.conn.cursor()
+        cur.execute("SELECT 1 FROM sqlite_master WHERE name=?", (tblname,))
+        ret = cur.fetchone()
+        return ret != None
+        
+
