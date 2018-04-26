@@ -7,6 +7,7 @@ from flask_cors import CORS
 from flask import request
 from FluidSeg import FluidSeg
 from FluidSeg import LexiconFactory, TokenData
+from fluid_beta import fluid_beta_bp
 import config
 import pyOceanus
 import pdb
@@ -116,21 +117,14 @@ class IndexAPI(Resource):
     def get(self):
         return "use /seg endpoint"
 
-@app.after_request
-def after_request(response):
-    h = response.headers
-    h["Access-Control-Allow-Origin"] = "*"
-    h["Access-Control-Allow-Headers"] = \
-        "Origin, X-Requested-With, Content-Type, Accept"
-    return response
-
 api.add_resource(Segments, '/seg')
 api.add_resource(SegmentsTest, '/segtest')
 api.add_resource(UserLexicon, "/lexicon")
 api.add_resource(IndexAPI, "/")
+app.register_blueprint(fluid_beta_bp, url_prefix="/beta")
+app.config.update(JSON_AS_ASCII = False)
 
-if __name__ == "__main__":
-    app.config.update(JSON_AS_ASCII = False)
+if __name__ == "__main__":    
     app.run(debug=True)
 
 
