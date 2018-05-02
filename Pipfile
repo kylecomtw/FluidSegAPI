@@ -1,0 +1,22 @@
+[[source]]
+
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+
+[packages]
+numpy = "*"
+requests = "*"
+flask = "*"
+flask_cors = "*"
+flask_restful = "*"
+pyOceanus = {git='https://github.com/seantyh/pyOceanus', editable=true}
+
+[dev-packages]
+
+
+
+[requires]
+
+python_version = "3.6"
