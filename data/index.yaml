@@ -2,3 +2,7 @@ fluid_seg_lexicon.txt:
   description: lexicon for fluid seg
   source: Dropbox/DeepLex
   format: text/plain
+deeplexicon_export.json.gz:
+  description: deeplexicon, merged by scripts in DeepLex/bin/deeplex/main.py
+  source: Dropbox/DeepLex/bin/deeplex
+  format: application/gzipped; text/json
