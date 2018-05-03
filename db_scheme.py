@@ -1,34 +1,63 @@
+tbl_lus = """
+    CREATE TABLE tbl_lus (
+        lus_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        lus TEXT UNIQUE
+    )
+"""
+
+tbl_field = """
+    CREATE TABLE tbl_field (
+        field_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        field TEXT UNIQUE
+    )
+"""
 
 tbl_tag = """
     CREATE TABLE tbl_tag (
-        tag_id INT PRIMARY KEY,
-        lus TEXT,
-        tag TEXT,
-        sess_id TEXT,
-        ranges TEXT
+        tag_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sess_id INT,
+        lus_id INT,        
+        field_id INT,        
+        tagvalue TEXT,        
+        ranges TEXT,
+        FOREIGN KEY(lus_id) REFERENCES tbl_lus(lus_id),
+        FOREIGN KEY(sess_id) REFERENCES tbl_lus(lus_id),
+        FOREIGN KEY(field_id) REFERENCES tbl_field(field_id)
     );
 """
 
-tbl_seg = """
-    CREATE TABLE tbl_seg (
-        seg_id INT PRIMARY KEY,
-        sess_id TEXT,
-        segments TEXT
-    );
+tbl_doc = """
+    CREATE TABLE tbl_doc (
+        doc_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        doc_text TEXT
+    )
 """
 
 tbl_sess = """
     CREATE TABLE tbl_sess (
-        sess_id INT PRIMARY KEY,
+        sess_id INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp INT,
         doc_id INT,
         user_id INT
     );
 """
 
+tbl_seg = """
+    CREATE TABLE tbl_seg (
+        seg_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        doc_id TEXT,
+        sess_id TEXT,
+        segments TEXT,
+        FOREIGN KEY(doc_id) REFERENCES tbl_doc(doc_id),
+        FOREIGN KEY(sess_id) REFERENCES tbl_sess(sess_id),
+    );
+"""
+
+idx_lus_lus = "CREATE INDEX idx_lus_lus ON tbl_lus(lus);"
+idx_field_field = "CREATE INDEX idx_field_field ON tbl_field(field);"
 idx_tag_sess = "CREATE INDEX idx_tag_sess ON tbl_tag(sess_id);"
-idx_tag_lu = "CREATE INDEX idx_tag_lu ON tbl_tag(lu);"
-idx_tag_tag = "CREATE INDEX idx_tag_tag ON tbl_tag(tag);"
+idx_tag_lu = "CREATE INDEX idx_tag_lu ON tbl_tag(lus_id);"
+idx_tag_tag = "CREATE INDEX idx_tag_tag ON tbl_tag(field_id);"
 idx_seg_sess = "CREATE INDEX idx_seg_sess ON tbl_seg(sess_id);"
 idx_sess_docid = "CREATE INDEX idx_sess_docid ON tbl_sess(doc_id);"
 

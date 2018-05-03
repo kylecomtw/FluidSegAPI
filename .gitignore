@@ -8,5 +8,6 @@ data/*.txt
 data/*.csv
 data/*.db
 data/*.gz
+data/*.sqlite
 __pycache__
 

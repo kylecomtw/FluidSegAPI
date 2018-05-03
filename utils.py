@@ -1,5 +1,13 @@
 import argparse
 import db_import as dbImport 
+import logging
+
+logger = logging.getLogger("FluidSeg")
+logger.setLevel("INFO")
+ch = logging.StreamHandler()
+formatter = logging.Formatter("%(name)s: [%(levelname)s] %(message)s")
+ch.setFormatter(formatter)
+logger.addHandler(ch)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
