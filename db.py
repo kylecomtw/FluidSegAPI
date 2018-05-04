@@ -262,7 +262,7 @@ class FluidDb:
         cur = self.conn.cursor()
         timestamp = time.mktime(datetime.now().timetuple())
         timestamp = int(timestamp)
-        cur.execute("INSERT INTO tbl_sess VALUES (?,?,?,?,?)", (
+        cur.execute("INSERT OR IGNORE INTO tbl_sess VALUES (?,?,?,?,?)", (
             None,
             timestamp,
             sess_item["sess_key"],
