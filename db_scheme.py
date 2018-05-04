@@ -37,6 +37,7 @@ tbl_sess = """
     CREATE TABLE tbl_sess (
         sess_id INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp TEXT,
+        sess_key TEXT,
         doc_id INT,
         userName TEXT
     );
@@ -59,6 +60,6 @@ idx_tag_sess = "CREATE INDEX idx_tag_sess ON tbl_tag(sess_id);"
 idx_tag_lu = "CREATE INDEX idx_tag_lu ON tbl_tag(lus_id);"
 idx_tag_tag = "CREATE INDEX idx_tag_tag ON tbl_tag(field_id);"
 idx_seg_sess = "CREATE INDEX idx_seg_sess ON tbl_seg(sess_id);"
-idx_sess_docid = "CREATE INDEX idx_sess_docid ON tbl_sess(doc_id);"
+idx_sess_sessKey = "CREATE INDEX idx_sess_sessKey ON tbl_sess(sess_key);"
 
 

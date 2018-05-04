@@ -18,8 +18,8 @@ class DbTest(unittest.TestCase):
     def test_session_query(self):
         db = FluidDb()
         doc_id = db.save_doc({"text": "session test"})
-        sess_id = db.save_session({"doc_id": doc_id, "userName": "anony1"})
-        ret = db.get_session_info(sess_id)
+        sess_id = db.save_session({"sess_key": "Sess123", "doc_id": doc_id, "userName": "anony1"})
+        ret = db.get_session_info("Sess123")
         self.assertIsNotNone(ret)
         self.assertGreaterEqual(len(ret), 0)
         print(ret)
