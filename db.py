@@ -220,8 +220,7 @@ class FluidDb:
             segs = cur.fetchone()
             if not segs:
                 segs = []
-            else:
-                pdb.set_trace()
+            else:                
                 segs = self.str2seg(segs[0])
 
             cur = self.conn.execute(

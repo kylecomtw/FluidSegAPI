@@ -28,6 +28,7 @@ def import_deep_lexicon(deeplex_path):
         if lex_idx % 1000 == 0:
             logger.info("saving tag %d/%d", lex_idx, nItem)                  
         try:        
+            lex_item["lus"] = lex_item["lu"]
             db.save_tag(lex_item)
         except Exception as ex:
             logger.error(ex)
