@@ -37,7 +37,7 @@ tbl_sess = """
     CREATE TABLE tbl_sess (
         sess_id INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp TEXT,
-        sess_key TEXT,
+        sess_key TEXT UNIQUE,
         doc_id INT,
         userName TEXT
     );

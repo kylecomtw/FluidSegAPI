@@ -7,13 +7,14 @@ import pdb
 import time
 from datetime import datetime
 
-logger = logging.getLogger("FluidSeg.Db")
+logger = logging.getLogger("FluidSegAPI.Db")
 logger.setLevel("WARNING")
 
 class FluidDb:
     def __init__(self):
         try:
-            os.remove(config.DB_PATH)
+            # os.remove(config.DB_PATH)
+            pass
         except:
             pass
             
@@ -48,9 +49,25 @@ class FluidDb:
     def commit_change(self):
         self.conn.commit()
     
+    def get_statistics(self):        
+        try:
+            cur = self.conn.execute("SELECT COUNT(*) FROM tbl_field")
+            field_count = cur.fetchone()[0]
+            cur = self.conn.execute("SELECT COUNT(*) FROM tbl_tag")
+            tag_count = cur.fetchone()[0]
+            cur = self.conn.execute("SELECT COUNT(*) FROM tbl_lus")
+            lu_count = cur.fetchone()[0]
+        except Exception as ex:
+            logger.error(ex)
+            field_count = -1
+            tag_count = -1
+            lu_count = -1
+
+        return {"nLU": lu_count, "nField": field_count, "nTag": tag_count}
+        
+        
     def get_lus(self):
-        cur = self.conn.execute("SELECT lus FROM tbl_lus")
-        pdb.set_trace()
+        cur = self.conn.execute("SELECT lus FROM tbl_lus")        
         lus_list = [x[0] for x in cur.fetchall()]
         return lus_list
 
@@ -194,6 +211,43 @@ class FluidDb:
         doctext = doctext[0] if doctext else ""
         return doctext    
 
+    def get_annotation(self, sess_id):
+        try:            
+            cur = self.conn.execute(
+                "SELECT segments FROM tbl_seg " + 
+                "WHERE sess_id = ?" + 
+                "ORDER BY seg_id DESC LIMIT 1", (sess_id,))
+            segs = cur.fetchone()
+            if not segs:
+                segs = []
+            else:
+                pdb.set_trace()
+                segs = self.str2seg(segs[0])
+
+            cur = self.conn.execute(
+                "SELECT lus, field, tagvalue, ranges FROM tbl_tag " + 
+                "LEFT JOIN tbl_field ON tbl_tag.field_id = tbl_field.field_id " + 
+                "LEFT JOIN tbl_lus ON tbl_tag.lus_id = tbl_lus.lus_id "
+                "WHERE sess_id = ?", (sess_id,))
+            tag_data = []
+            for tag_rec in cur.fetchall():
+                lus = tag_rec[0]
+                field = tag_rec[1]
+                tagvalue = tag_rec[2]
+                ranges = tag_rec[3]
+                tag_inst = {
+                    "lus": lus.split("/"),
+                    "ranges": self.str2seg(ranges),
+                    "tagField": field,
+                    "tagValue": tagvalue
+                }
+                tag_data.append(tag_inst)
+            return { "segments": segs, "tags": tag_data }
+
+        except Exception as ex:
+            logger.error(ex)
+            return []
+        
     def save_session(self, sess_item):
         """ Save session data
 
@@ -281,27 +335,26 @@ class FluidDb:
 
         # tag_data_list = {lu: "...", "data": [...]}
         cur = self.conn.cursor()
-        if "lu" not in lex_item or "data" not in lex_item:
-            logger.warning("invalid tag_data attempt to save")
+
         
-        # accommodate lex_item format
+        # accommodate lex_item format        
+        lus = (lex_item["lus"],)
 
-        lus = (lex_item["lu"],)
-
-        if "range" in lex_item:
+        if "ranges" in lex_item:            
             # lex_item is a LexRangedDataItem
             tagField_x = lex_item.get("tagField", "unknown")
             tagValue_x = lex_item.get("tagValue", "")
             tags = {tagField_x: tagValue_x}
-            fields = [(tagField_x,)]
-            rangesStr = self.seg2Str(lex_item["range"])
-            
+            fields = [(tagField_x,)]            
+            rangesStr = self.seg2str([lex_item["ranges"]])            
         else:
+            if "lus" not in lex_item or "data" not in lex_item:
+                logger.warning("invalid tag_data attempt to save")
             # lex_item is a LexDataItem    
             tags = lex_item["data"]
             fields = [(x,) for x in tags.keys()]
             rangesStr = ""
-        
+                
         cur.execute("INSERT OR IGNORE INTO tbl_lus (lus) VALUES (?)", lus)               
         cur.execute("SELECT lus_id FROM tbl_lus WHERE lus = ?", lus)
         lus_id = cur.fetchone()[0]
@@ -314,7 +367,7 @@ class FluidDb:
         fields_str = ",".join(["'%s'" % (x,) for x in tags.keys()])
         cmd = "SELECT * FROM tbl_field WHERE field IN (%s)" % fields_str
         cur.execute(cmd)
-        field_map = {field: field_id for field_id, field in cur.fetchall()}
+        field_map = {field: field_id for field_id, field in cur.fetchall()}        
 
         ins_data_list = []
         for tag_field, tag_value in tags.items():
@@ -333,14 +386,21 @@ class FluidDb:
         logger.info("tbl_tag INSERT affect %d rows", cur.rowcount)        
 
     def str2seg(self, segStr):
-        segList = segStr.split(",")
-        segList = [tuple(x.split('-')) for x in segList]
+        segList = []
+        segTokens = segStr.split(",")
+        # pdb.set_trace()
+        for seg_tok in segTokens:
+            segments = seg_tok.split("/")
+            seg_tok = [x.split("-") for x in segments]
+            segList.append(seg_tok)
         return segList
 
-    def seg2str(self, seg_list):
-        """ seg_list: List[Tuple[chstart, chend]]
-        """
-        segStr = ["%d-%d" % (x[0],x[1]) for x in seg_list]
-        segStr = ",".join(segStr)
+    def seg2str(self, seg_list):              
+        strbuf = []
+        for seg_x in seg_list:            
+            str_x = ["%d-%d" % (x[0],x[1]) for x in seg_x]
+            str_x = "/".join(str_x)            
+            strbuf.append(str_x)
+        segStr = ",".join(strbuf)        
         return segStr
 

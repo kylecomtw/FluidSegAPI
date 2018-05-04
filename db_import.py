@@ -31,7 +31,7 @@ def import_deep_lexicon(deeplex_path):
             db.save_tag(lex_item)
         except Exception as ex:
             logger.error(ex)
-            pdb.set_trace()                
+                         
     db.commit_change()
 
 
