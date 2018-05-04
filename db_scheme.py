@@ -50,7 +50,7 @@ tbl_seg = """
         sess_id INTEGER,
         segments TEXT,
         FOREIGN KEY(doc_id) REFERENCES tbl_doc(doc_id),
-        FOREIGN KEY(sess_id) REFERENCES tbl_sess(sess_id),
+        FOREIGN KEY(sess_id) REFERENCES tbl_sess(sess_id)
     );
 """
 

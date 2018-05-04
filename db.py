@@ -12,7 +12,11 @@ logger.setLevel("WARNING")
 
 class FluidDb:
     def __init__(self):
-        # os.remove(config.DB_PATH)
+        try:
+            os.remove(config.DB_PATH)
+        except:
+            pass
+            
         self.conn = sqlite3.connect(config.DB_PATH)
         if not self.check_table_exists("tbl_sess"):
             self.create_datatables()
@@ -44,6 +48,12 @@ class FluidDb:
     def commit_change(self):
         self.conn.commit()
     
+    def get_lus(self):
+        cur = self.conn.execute("SELECT lus FROM tbl_lus")
+        pdb.set_trace()
+        lus_list = [x[0] for x in cur.fetchall()]
+        return lus_list
+
     def get_lu_info(self, lus):
         """ Get lexical unit tagging history
         
@@ -262,13 +272,10 @@ class FluidDb:
                 "data": Dict[TagField, TagValue]
             } or
             LexRangedDataItem:: {
-                "lu": "<lu>"
-                "range_data": List[RangedTag]
-            }
-
-            RangedTag:: {
+                lu: "<lu>"
                 range: [chstart, chend],
-                tagField: "tagValue"                
+                tagField: "<tagField>",
+                tagValue: "<tagValue>"                
             }
         """
 
@@ -277,10 +284,23 @@ class FluidDb:
         if "lu" not in lex_item or "data" not in lex_item:
             logger.warning("invalid tag_data attempt to save")
         
-    
+        # accommodate lex_item format
+
         lus = (lex_item["lu"],)
-        tags = lex_item["data"]
-        fields = [(x,) for x in tags.keys()]
+
+        if "range" in lex_item:
+            # lex_item is a LexRangedDataItem
+            tagField_x = lex_item.get("tagField", "unknown")
+            tagValue_x = lex_item.get("tagValue", "")
+            tags = {tagField_x: tagValue_x}
+            fields = [(tagField_x,)]
+            rangesStr = self.seg2Str(lex_item["range"])
+            
+        else:
+            # lex_item is a LexDataItem    
+            tags = lex_item["data"]
+            fields = [(x,) for x in tags.keys()]
+            rangesStr = ""
         
         cur.execute("INSERT OR IGNORE INTO tbl_lus (lus) VALUES (?)", lus)               
         cur.execute("SELECT lus_id FROM tbl_lus WHERE lus = ?", lus)
@@ -295,7 +315,6 @@ class FluidDb:
         cmd = "SELECT * FROM tbl_field WHERE field IN (%s)" % fields_str
         cur.execute(cmd)
         field_map = {field: field_id for field_id, field in cur.fetchall()}
-        rangesStr = self.seg2str(ranges)
 
         ins_data_list = []
         for tag_field, tag_value in tags.items():

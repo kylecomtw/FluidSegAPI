@@ -12,7 +12,9 @@ logger = logging.getLogger("FluidSeg.FluidBeta")
 fluid_beta_bp = Blueprint('fluid_beta', __name__)
 
 basepath = abspath(dirname(__file__))
-lexicon = LexiconFactory().get(join(basepath, "data/fluid_seg_lexicon.txt"))
+db = FluidDb()
+lus_list = db.get_lus()
+lexicon = LexiconFactory().getWithList(lus_list)
 lexicon.addSupplementary([
     "我想說", "今天來說", "的話", "今天來說的話", "要不要再研究看看"
 ])
@@ -64,13 +66,14 @@ def input_text():
 
     ## Handling FluidSeg
     fluidSeg = fluid_seg(text, lexicon)
+    lus_list = extract_all_lus(fluidSeg)
+    try:
+        lus_info = db.get_lu_info(lus_list)
+    except:
     ret = {
         "status": "ready", 
         "fluidSeg": fluidSeg,
-        "lu_list": {
-            "我想說": [generate_tag_data("tagY" + str(i)) for i in range(3)],
-            "今天來說的話": [generate_tag_data("tagX" + str(i)) for i in range(2)]
-        },
+        "lu_list": lus_list,
         "text": text
     }
     return jsonify(ret)
@@ -100,7 +103,13 @@ def annotation():
             "segments": seg_list
             })
         
-        db.save_tag({})
+        for tag_x in tags_obj:
+            # tag_data:: LexRangedDataItem
+            # object passed in from json actually follows the LexRangedDataItem
+            tag_data = tag_x
+            db.save_tag(tag_data)
+        db.commit_change()
+
     except Exception as ex:
         logger.error(ex)
         make_status_response("Internal db error", 500)
@@ -110,15 +119,31 @@ def annotation():
 
 @fluid_beta_bp.route("/lu")
 def lu():
-    intext = request.args.get("text", "")
+    lus = request.args.get("text", "")
     if not intext:
         ret = {"status": "failed", "message": "empty text"}
         resp = jsonify(ret)
         resp.status_code = 400
         return resp
 
-    lu = [generate_tag_data("tag" + str(i)) for i in range(3)]
+    try:
+        db = FluidDb()
+        lu_list = lus.split(",")
+        lu_data = db.get_lu_info(lu_list)
+    except Exception as ex:
+        logger.error(ex)
+        lu_data = {}
     
-    ret = {"status": "ready", 
-           "lu": lu, "echo": intext }
+    ret = lu_data
     return jsonify(ret)
+
+def extract_all_lus(fluidseg_obj):
+    lus_set = set()
+    try:
+        segments_list = fluidseg_obj["segments"]
+        for tok in chain.from_iterable(segments_list):
+            lus_list.add(tok["text"])
+        return lus_list
+    except KeyError as ex:
+        logger.error(ex)
+        return []

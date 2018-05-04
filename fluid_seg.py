@@ -33,7 +33,7 @@ def fluid_seg(text, lexicon):
     for seg in seg_list:
         seg_obj_list.append([tok.__dict__ for tok in seg])
 
-    return {"fluidSeg": {
-                "granularity": gran_label, 
-                "segments": seg_obj_list }, 
-            "text": text }
+    return {
+            "granularity": gran_label, 
+            "segments": seg_obj_list 
+        }

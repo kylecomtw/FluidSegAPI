@@ -8,6 +8,11 @@ class DbTest(unittest.TestCase):
         db = FluidDb()
         self.assertTrue(True)
 
+    def test_lus_list(self):
+        db = FluidDb()
+        lus = db.get_lus()
+        self.assertGreater(len(lus), 0)
+        
     def test_lu_query(self):
         db = FluidDb()
         ret = db.get_lu_info(["高興", "生氣"])        
