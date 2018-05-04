@@ -4,6 +4,8 @@ import config
 import os
 import db_scheme
 import pdb
+import time
+from datetime import datetime
 
 logger = logging.getLogger("FluidSeg.Db")
 logger.setLevel("WARNING")
@@ -43,33 +45,54 @@ class FluidDb:
         self.conn.commit()
     
     def get_lu_info(self, lus):
-        """ return ret_data: Dict[tagfield, tagInstance]
+        """ Get lexical unit tagging history
+        
+        Parameters
+        ----------
+            lus: List[Str]
+                 list of lu to query
+        Return
+        -------
+        ret_data: Dict[lus, tagData]
+            tagData:: Dict[tagfield, tagInstance]
             tagInstance:: Dict[tagvalue, tagLocations]
             tagLocations: List[Tuple[sess_id, ranges]]
         """
+
         try:
-            cur = self.conn.execute("SELECT lus_id FROM tbl_lus WHERE lus = ?", (lus,))
-            lus_id = cur.fetchone()[0]
-            
-            if lus_id is None:
-                raise ValueError("lus not found")            
+            lus_list = ["'%s'" % x for x in lus]
+            lusStr = ",".join(lus_list)
+
+            cur = self.conn.execute("SELECT lus_id, lus FROM tbl_lus WHERE lus IN (%s)" % lusStr)
+            results = cur.fetchall()
+            if not results:
+                raise ValueError("lus not found") 
+
+            lus_map = {lus_id: lus for lus_id, lus in results}
+            lus_id = [str(x) for x in lus_map.keys()]
+            lus_id_list = ",".join(lus_id)
+            pdb.set_trace()
             cur = self.conn.execute(
-                "SELECT field, tagvalue, sess_id, ranges FROM tbl_tag " + 
+                "SELECT lus_id, field, tagvalue, sess_id, ranges FROM tbl_tag " + 
                 "LEFT JOIN tbl_field ON tbl_tag.field_id = tbl_field.field_id " + 
-                "WHERE tbl_tag.lus_id=?", (lus_id,))
+                "WHERE tbl_tag.lus_id IN (%s)" % lus_id_list)
             
             ret_data = {}
             for data in cur.fetchall():                
-                tagfield = data[0]
-                tagvalue = data[1]
-                sess_id = data[2]
-                ranges = data[3]
-                tag_data = ret_data.get(tagfield, {})
+                lus = lus_map.get(data[0], "")
+                tagfield = data[1]
+                tagvalue = data[2]
+                sess_id = data[3]
+                ranges = data[4]
+
+                lus_data = ret_data.get(lus, {})
+                tag_data = lus_data.get(tagfield, {})
                 tag_value_data = tag_data.get(tagvalue, [])
                 if sess_id and ranges:                    
                     tag_value_data.append((sess_id, ranges))                
                 tag_data[tagvalue] = tag_value_data
-                ret_data[tagfield] = tag_data
+                lus_data[tagfield] = tag_data
+                ret_data[lus] = lus_data
 
         except Exception as ex:
             logger.error(ex)
@@ -80,17 +103,15 @@ class FluidDb:
     def get_session_info(self, sess_id):
         try:
             cur = self.conn.execute(
-                "SELECT timestamp, doc_id, user_id FROM tbl_sess " + 
+                "SELECT timestamp, doc_id, userName FROM tbl_sess " + 
                 "WHERE sess_id = ?", (sess_id,))
             sess_data = cur.fetchone()
-            if sess_data:
-                sess_data = sess_data[0]
-            else:
+            if not sess_data:                            
                 raise ValueError("invalid sess_id")            
 
             timestamp = sess_data[0]
             doc_id = sess_data[1]
-            user_id = sess_data[2]
+            userName = sess_data[2]
             cur = self.conn.execute(
                 "SELECT doc_text FROM tbl_doc WHERE doc_id = ?", (doc_id,)
             )
@@ -103,7 +124,7 @@ class FluidDb:
             ret_data = {
                 "timestamp": timestamp,
                 "doc_id": doc_id,
-                "user_id": user_id, 
+                "userName": userName, 
                 "text": doc_text
             }
         except Exception as ex:
@@ -118,10 +139,8 @@ class FluidDb:
                 "SELECT doc_text, segments FROM tbl_seg " + 
                 "LEFT JOIN tbl_doc ON tbl_seg.doc_id = tbl_doc.doc_id "
                 "WHERE sess_id = ?", (sess_id,))
-            seg_data = cur.fetchone()
-            if seg_data:
-                seg_data = seg_data[0]
-            else:
+            seg_data = cur.fetchone()            
+            if not seg_data:                
                 raise ValueError("invalid sess_id")            
 
             doc_text = seg_data[0]
@@ -146,6 +165,16 @@ class FluidDb:
         return doctext    
 
     def save_session(self, sess_item):
+        """ Save session data
+
+        Parameters
+        ----------
+        sess_item: Dict
+                   {
+                       "doc_id": doc_id,
+                       "userName": userName 
+                   }
+        """
         cur = self.conn.cursor()
         timestamp = time.mktime(datetime.now().timetuple())
         timestamp = int(timestamp)
@@ -153,11 +182,23 @@ class FluidDb:
             None,
             timestamp,
             sess_item["doc_id"],
-            sess_item["user_id"]
+            sess_item["userName"]
         ))
+        self.commit_change()
         return cur.lastrowid
 
     def save_seg(self, seg_data):
+        """ Save segmentation data
+        
+        Parameters
+        seg_data: Dict
+                  {
+                      "doc_id": doc_id,
+                      "sess_id": sess_id,
+                      "segments": List[Ranges]
+                                  Ranges: (chstart, chend)
+                  }
+        """
         cur = self.conn.cursor()
         segStr = self.seg2str(seg_data["segments"])
         cur.execute("INSERT INTO tbl_seg VALUES (?,?,?,?)", (
@@ -166,6 +207,7 @@ class FluidDb:
             seg_data["sess_id"],
             segStr
         ))
+        self.commit_change()
         return cur.lastrowid
     
     def save_doc(self, doc_data):
@@ -182,6 +224,8 @@ class FluidDb:
             None,
             doc_data["text"]        
         ))
+
+        self.commit_change()
         return cur.lastrowid
         
     def save_tag(self, lex_item):

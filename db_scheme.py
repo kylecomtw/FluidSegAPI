@@ -38,15 +38,15 @@ tbl_sess = """
         sess_id INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp TEXT,
         doc_id INT,
-        user_id INT
+        userName TEXT
     );
 """
 
 tbl_seg = """
     CREATE TABLE tbl_seg (
         seg_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        doc_id TEXT,
-        sess_id TEXT,
+        doc_id INTEGER,
+        sess_id INTEGER,
         segments TEXT,
         FOREIGN KEY(doc_id) REFERENCES tbl_doc(doc_id),
         FOREIGN KEY(sess_id) REFERENCES tbl_sess(sess_id),
