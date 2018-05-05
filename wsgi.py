@@ -1,5 +1,15 @@
 import flask
 import logging
+
+logger = logging.getLogger("FluidSegAPI")
+ch = logging.StreamHandler()
+formatter = logging.Formatter("%(name)s - [%(levelname)s]: %(message)s")
+ch.setFormatter(formatter)
+logger.addHandler(ch)
+logger.setLevel("INFO")
+
+
+import os
 from os.path import abspath, dirname, join
 from itertools import chain
 from flask import Flask
@@ -17,15 +27,11 @@ app = Flask(__name__)
 CORS(app)
 api = Api(app)
 
-logger = logging.getLogger("FluidSegAPI")
-ch = logging.StreamHandler()
-formatter = logging.Formatter("%(name)s - [%(levelname)s]: %(message)s")
-ch.setFormatter(formatter)
-logger.addHandler(ch)
-logger.setLevel("INFO")
 
 basepath = abspath(dirname(__file__))
 lexicon = LexiconFactory().get(join(basepath, "data/fluid_seg_lexicon.txt"))
+
+
 oc = pyOceanus.Oceanus(config.OCEANUS_ENDPOINT)
 
 class UserLexicon(Resource):

@@ -6,10 +6,12 @@ from fluid_seg_test_data import get_fluid_seg_test_data
 from fluid_seg import fluid_seg
 from FluidSeg import LexiconFactory
 from db import FluidDb
+import os
 from os.path import join, abspath, dirname
 import pdb
 
 logger = logging.getLogger("FluidSegAPI.FluidBeta")
+logger.setLevel("INFO")
 fluid_beta_bp = Blueprint('fluid_beta', __name__)
 
 basepath = abspath(dirname(__file__))
@@ -17,9 +19,14 @@ _db = FluidDb()
 logger.info("loading lus from db")
 lus_list = _db.get_lus()
 lexicon = LexiconFactory().getWithList(lus_list)
-lexicon.addSupplementary([
-    "我想說", "今天來說", "的話", "今天來說的話", "要不要再研究看看"
-])
+
+user_lex_path = join(basepath, "data/user_lexicon.txt")
+if os.path.exists(user_lex_path):
+    fin = open(user_lex_path, "r", encoding="UTF-8")
+    user_lus = [x.strip() for x in fin.readlines()]
+    fin.close()
+    ret = lexicon.addSupplementary(user_lus)
+    logger.info("addSupplementary: %d", ret)
 
 n_newlu = 0
 

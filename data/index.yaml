@@ -6,3 +6,12 @@ deeplexicon_export.json.gz:
   description: deeplexicon, merged by scripts in DeepLex/bin/deeplex/main.py
   source: Dropbox/DeepLex/bin/deeplex
   format: application/gzipped; text/json
+fluiddb.sqlite:
+  description: database for fluidseg_beta
+  source: Dropbox/Deeplex/Data/FluidSeg
+  format: sqlite3
+user_lexicon.txt:
+  description: user-predefined lexical units for granularity segmentation
+  source: optionally self-defined
+  format: plain text, each LU in a line
+
